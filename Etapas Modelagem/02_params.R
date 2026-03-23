@@ -24,4 +24,5 @@ background_max <- 10000
 metodos_modelagem <- c('maxent', 'rf', 'gam')
 
 # ESPÉCIE DE PARTIDA
-especie_partida <- "Aburria_cujubi"
+# Deixe vazio ("") para começar da primeira espécie encontrada na pasta de ocorrências
+especie_partida <- ""

@@ -31,8 +31,11 @@ cat("\n📊 Total de espécies:", nrow(especies_df), "\n")
 cat("📊 Já processadas:", length(especies_processadas), "\n")
 
 # Encontrar posição da espécie de partida
-posicao_partida <- which(especies_df$especie == especie_partida)
-if (length(posicao_partida) == 0) posicao_partida <- 1
+posicao_partida <- 1
+if (!is.null(especie_partida) && especie_partida != "") {
+  posicao_partida <- which(especies_df$especie == especie_partida)
+  if (length(posicao_partida) == 0) posicao_partida <- 1
+}
 
 # Espécies pendentes
 especies_pendentes <- especies_df[posicao_partida:nrow(especies_df), ]

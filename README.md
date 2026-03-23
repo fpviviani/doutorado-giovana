@@ -77,6 +77,7 @@ Parâmetros gerais da modelagem.
 - Limites de background (min/max)
 - Métodos de modelagem (`maxent`, `rf`, `gam`)
 - Espécie de partida
+- Se `especie_partida <- ""`, o loop começa da **primeira espécie** encontrada na pasta de ocorrências.
 - Flag `safe_mode` (habilita/desabilita redução automática de cores após erros de memória)
 
 #### `Etapas Modelagem/03_background_adaptativo.R`
