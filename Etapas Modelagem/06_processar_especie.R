@@ -29,6 +29,9 @@ processar_especie <- function(especie_info, bioclimaticas, tentativa = 1) {
     n_ocorrencias = 0,
     n_background_usado = 0,
     n_variaveis_selecionadas = 0,
+    metodos_solicitados = paste(metodos_modelagem, collapse = ','),
+    metodos_rodados = NA_character_,
+    metodos_faltando = NA_character_,
     auc_media = NA,
     tss_media = NA,
     tempo_min = NA,
@@ -139,6 +142,19 @@ processar_especie <- function(especie_info, bioclimaticas, tentativa = 1) {
       test.percent = test_percent,
       parallelSettings = list(ncore = n_cores, method = "parallel")
     )
+
+    # Registrar quais métodos realmente foram calibrados
+    info_modelos <- tryCatch(getModelInfo(modelo), error = function(e) NULL)
+    if (!is.null(info_modelos) && is.data.frame(info_modelos)) {
+      col_metodo <- if ("method" %in% names(info_modelos)) "method" else if ("model" %in% names(info_modelos)) "model" else NA
+      if (!is.na(col_metodo)) {
+        metodos_presentes <- unique(as.character(info_modelos[[col_metodo]]))
+        metodos_presentes <- metodos_presentes[!is.na(metodos_presentes) & metodos_presentes != ""]
+        resultado$metodos_rodados <- paste(metodos_presentes, collapse = ',')
+        metodos_faltando <- setdiff(metodos_modelagem, metodos_presentes)
+        resultado$metodos_faltando <- paste(metodos_faltando, collapse = ',')
+      }
+    }
     
     # 10. Avaliar (SIMPLIFICADO)
     cat("\n8️⃣ Avaliando modelos...\n")
@@ -184,6 +200,9 @@ processar_especie <- function(especie_info, bioclimaticas, tentativa = 1) {
     eval_completo <- as.data.frame(eval_stats)
     eval_completo$especie <- especie
     eval_completo$n_background_usado <- n_background
+    eval_completo$metodos_solicitados <- paste(metodos_modelagem, collapse = ',')
+    eval_completo$metodos_rodados <- resultado$metodos_rodados
+    eval_completo$metodos_faltando <- resultado$metodos_faltando
     write.csv(eval_completo, 
               file.path(dir_avaliacoes, paste0(especie, "_avaliacao.csv")), 
               row.names = FALSE)
