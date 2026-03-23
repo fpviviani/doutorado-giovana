@@ -90,7 +90,7 @@
     },
     "usdm": {
       "Package": "usdm",
-      "Version": "2.1.7",
+      "Version": "2.1-6",
       "Source": "Repository",
       "Repository": "CRAN"
     },
