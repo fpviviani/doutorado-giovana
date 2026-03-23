@@ -109,3 +109,26 @@ Dependendo dos dados, o pipeline tende a produzir:
 - `Checkpoints/progresso.rds` (checkpoint do progresso)
 
 ---
+
+## Como retomar (checkpoint)
+
+O script salva um checkpoint automaticamente em:
+
+- `Checkpoints/progresso.rds`
+
+Se a execução for interrompida (queda de energia, travamento, etc.), basta rodar o `main_modelagem.R` novamente.
+
+- Se o checkpoint existir, o pipeline carrega o `progresso.rds` e **pula automaticamente** as espécies que já estão com `status == "sucesso"` nesse arquivo, continuando de onde parou.
+
+### Arquivo de erros (último erro por espécie)
+Durante a execução, se uma espécie falhar, o script atualiza o arquivo:
+
+- `relatorios/erros_por_especie.csv`
+
+Esse CSV mantém **o último erro registrado por espécie** (tentativa, mensagem e timestamp), para facilitar depuração sem precisar procurar no console.
+
+### Recomeçar do zero
+Se você quiser forçar uma execução do zero, apague o checkpoint:
+
+- `Checkpoints/progresso.rds`
+

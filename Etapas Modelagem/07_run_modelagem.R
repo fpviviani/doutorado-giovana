@@ -29,6 +29,32 @@ if (nrow(especies_pendentes) == 0) {
 
   
   resultados_consolidados <- data.frame()
+
+  # --- CHECKPOINT (retomar execução) ---
+  checkpoint_path <- file.path(dir_checkpoint, "progresso.rds")
+  if (file.exists(checkpoint_path)) {
+    resultados_consolidados <- readRDS(checkpoint_path)
+    if (!is.data.frame(resultados_consolidados)) resultados_consolidados <- data.frame()
+
+    if (nrow(resultados_consolidados) > 0 && "especie" %in% names(resultados_consolidados) && "status" %in% names(resultados_consolidados)) {
+      especies_concluidas <- unique(resultados_consolidados$especie[resultados_consolidados$status == "sucesso"])
+      especies_pendentes <- especies_pendentes[!especies_pendentes$especie %in% especies_concluidas, ]
+    }
+  }
+
+  # --- ARQUIVO DE ERROS (último erro por espécie) ---
+  erros_path <- file.path(dir_relatorios, "erros_por_especie.csv")
+  erros_por_especie <- data.frame(
+    especie = character(),
+    tentativa = integer(),
+    erro = character(),
+    timestamp = character(),
+    stringsAsFactors = FALSE
+  )
+  if (file.exists(erros_path)) {
+    erros_por_especie <- tryCatch(read.csv(erros_path, stringsAsFactors = FALSE), error = function(e) erros_por_especie)
+  }
+
   pb <- progress_bar$new(format = "[:bar] :current/:total (:percent)", 
                          total = nrow(especies_pendentes), clear = FALSE)
   
@@ -48,7 +74,9 @@ if (nrow(especies_pendentes) == 0) {
       especie_info <- especies_pendentes[j, ]
       
       sucesso <- FALSE
+      tentativa_final <- NA
       for (tentativa in 1:max_tentativas) {
+        tentativa_final <- tentativa
         resultado <- processar_especie(especie_info, bioclimaticas, tentativa)
         
         if (resultado$status == "sucesso") {
@@ -61,6 +89,23 @@ if (nrow(especies_pendentes) == 0) {
         }
       }
       
+      # Registrar último erro por espécie (se falhou)
+      if (!is.null(resultado) && resultado$status != "sucesso") {
+        nova_linha <- data.frame(
+          especie = especie_info$especie,
+          tentativa = tentativa_final,
+          erro = as.character(resultado$erro),
+          timestamp = as.character(Sys.time()),
+          stringsAsFactors = FALSE
+        )
+        if (nrow(erros_por_especie) > 0 && "especie" %in% names(erros_por_especie) && any(erros_por_especie$especie == especie_info$especie)) {
+          erros_por_especie[erros_por_especie$especie == especie_info$especie, ] <- nova_linha
+        } else {
+          erros_por_especie <- rbind(erros_por_especie, nova_linha)
+        }
+        write.csv(erros_por_especie, erros_path, row.names = FALSE)
+      }
+
       pb$tick()
       
       # Salvar checkpoint
