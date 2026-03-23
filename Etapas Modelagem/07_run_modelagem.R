@@ -124,14 +124,10 @@ if (nrow(especies_pendentes) == 0) {
         if (novo_n_cores < 1) novo_n_cores <- 1
 
         if (novo_n_cores < n_cores_atual) {
-          cat("
-⚠️ Safe mode automático ativado (erro de memória). Reduzindo n_cores para ", novo_n_cores, " nas próximas espécies.
-", sep = "")
+          cat("\n⚠️ Safe mode automático ativado (erro de memória). Reduzindo n_cores para ", novo_n_cores, " nas próximas espécies.\n", sep = "")
           n_cores_atual <- novo_n_cores
         } else if (n_cores_atual > 1) {
-          cat("
-⚠️ Novo erro de memória. Reduzindo n_cores para 1 nas próximas espécies.
-")
+          cat("\n⚠️ Novo erro de memória. Reduzindo n_cores para 1 nas próximas espécies.\n")
           n_cores_atual <- 1
         }
       }
