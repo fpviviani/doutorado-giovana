@@ -14,11 +14,11 @@ if (nrow(especies_pendentes) == 0) {
   # Snapshot de parâmetros usados nesta execução
   parametros_execucao <- data.frame(
     parametro = c(
-      'lote_tamanho','pausa_minutos','max_tentativas','n_cores','safe_mode','limiar_vif','n_replicacoes','test_percent',
+      'lote_tamanho','pausa_minutos','max_tentativas','n_cores_inicial','n_cores','safe_mode','limiar_vif','n_replicacoes','test_percent',
       'background_min','background_max','metodos_modelagem','especie_partida'
     ),
     valor = c(
-      lote_tamanho, pausa_minutos, max_tentativas, n_cores, safe_mode, limiar_vif, n_replicacoes, test_percent,
+      lote_tamanho, pausa_minutos, max_tentativas, n_cores_inicial, n_cores, safe_mode, limiar_vif, n_replicacoes, test_percent,
       background_min, background_max, paste(metodos_modelagem, collapse = ','), especie_partida
     ),
     stringsAsFactors = FALSE
@@ -55,6 +55,28 @@ if (nrow(especies_pendentes) == 0) {
     erros_por_especie <- tryCatch(read.csv(erros_path, stringsAsFactors = FALSE), error = function(e) erros_por_especie)
   }
 
+  # --- SAFE MODE AUTOMÁTICO (reduzir n_cores ao detectar erro de memória) ---
+  n_cores_inicial <- n_cores
+  n_cores_atual <- n_cores
+  safe_mode_auto <- FALSE
+
+  is_memory_error <- function(msg) {
+    if (is.null(msg) || is.na(msg)) return(FALSE)
+    m <- tolower(as.character(msg))
+    patterns <- c(
+      "cannot allocate",
+      "cannot allocate memory",
+      "vector memory exhausted",
+      "out of memory",
+      "std::bad_alloc",
+      "bad_alloc",
+      "memory",
+      "memoria",
+      "insufficient memory"
+    )
+    any(vapply(patterns, function(p) grepl(p, m, fixed = TRUE), logical(1)))
+  }
+
   pb <- progress_bar$new(format = "[:bar] :current/:total (:percent)", 
                          total = nrow(especies_pendentes), clear = FALSE)
   
@@ -77,6 +99,10 @@ if (nrow(especies_pendentes) == 0) {
       tentativa_final <- NA
       for (tentativa in 1:max_tentativas) {
         tentativa_final <- tentativa
+
+        # Aplicar n_cores dinâmico (pode ser reduzido pelo safe mode automático)
+        n_cores <- n_cores_atual
+
         resultado <- processar_especie(especie_info, bioclimaticas, tentativa)
         
         if (resultado$status == "sucesso") {
@@ -89,6 +115,22 @@ if (nrow(especies_pendentes) == 0) {
         }
       }
       
+      # Safe mode automático: se falhou por memória, reduzir n_cores para a PRÓXIMA espécie
+      if (!is.null(resultado) && resultado$status != "sucesso" && is_memory_error(resultado$erro)) {
+        safe_mode_auto <- TRUE
+        if (n_cores_atual > 3) {
+          cat("
+⚠️ Safe mode automático ativado (erro de memória). Reduzindo n_cores para 3 nas próximas espécies.
+")
+          n_cores_atual <- 3
+        } else if (n_cores_atual == 3) {
+          cat("
+⚠️ Novo erro de memória com n_cores=3. Reduzindo n_cores para 1 nas próximas espécies.
+")
+          n_cores_atual <- 1
+        }
+      }
+
       # Registrar último erro por espécie (se falhou)
       if (!is.null(resultado) && resultado$status != "sucesso") {
         nova_linha <- data.frame(
