@@ -143,7 +143,7 @@ Se você quiser forçar uma execução do zero, apague o checkpoint:
 
 ## Modo seguro (menos uso de memória)
 
-Se o script estiver travando/fechando por falta de memória, você pode ativar o **modo seguro**, que reduz o paralelismo (limita `n_cores` a no máximo 2).
+Se o script estiver travando/fechando por falta de memória, você pode ativar o **modo seguro**, que reduz o paralelismo (limita `n_cores` a no máximo 3).
 
 No Windows (PowerShell), antes de rodar:
 
