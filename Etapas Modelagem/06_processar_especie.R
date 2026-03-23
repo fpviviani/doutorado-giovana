@@ -16,9 +16,7 @@ processar_especie <- function(especie_info, bioclimaticas, tentativa = 1) {
     try(sink(type = "message"), silent = TRUE)
     try(sink(), silent = TRUE)
   }, add = TRUE)
-  cat("
-===== LOG INICIADO: ", as.character(Sys.time()), " | ", especie, " =====
-")
+  cat("\n===== LOG INICIADO: ", as.character(Sys.time()), " | ", especie, " =====\n")
 
   cat("\n", paste(rep("=", 70), collapse = ""), "\n")
   cat("🔷 PROCESSANDO:", especie, "\n")
