@@ -182,22 +182,45 @@ processar_especie <- function(especie_info, bioclimaticas, tentativa = 1) {
     cat("   📈 TSS:", resultado$tss_media, "\n")
     
     # 11. Ensemble
-    cat("\n9️⃣ Gerando mapa ensemble...\n")
-    
-    ensemble_sp <- tryCatch({
-      ensemble(modelo, newdata = vars_stack, 
-               setting = list(method = "weighted", stat = "TSS"))
-    }, error = function(e) {
-      cat("   ⚠️ Usando método média\n")
-      ensemble(modelo, newdata = vars_stack, setting = list(method = "mean"))
-    })
-    
+    cat("
+9️⃣ Gerando mapa ensemble (em chunks) ...
+")
+
     arquivo_mapa <- file.path(dir_modelagem, paste0(especie, "_ensemble.tif"))
-    ensemble_terra <- rast(ensemble_sp)
-    
-    writeRaster(ensemble_terra, filename = arquivo_mapa, overwrite = TRUE,
-                gdal = "COMPRESS=LZW")
-    
+    pred_tmp <- file.path(dir_temp, paste0(especie, "_pred_tmp.tif"))
+
+    # Observação: o sdm::ensemble() chama predict() internamente quando newdata é raster
+    # e suporta escrever em arquivo (filename/pFilename), o que força processamento em blocos
+    # via terra (evita segurar o raster inteiro em memória).
+    ensemble_res <- tryCatch({
+      ensemble(
+        modelo,
+        newdata = vars_stack,
+        filename = arquivo_mapa,
+        overwrite = TRUE,
+        pFilename = pred_tmp,
+        setting = list(method = "weighted", stat = "TSS"),
+        wopt = list(gdal = c("COMPRESS=LZW"))
+      )
+    }, error = function(e) {
+      cat("   ⚠️ Weighted falhou: ", e$message, "
+", sep = "")
+      cat("   ⚠️ Usando método média (em chunks)
+")
+      ensemble(
+        modelo,
+        newdata = vars_stack,
+        filename = arquivo_mapa,
+        overwrite = TRUE,
+        pFilename = pred_tmp,
+        setting = list(method = "mean"),
+        wopt = list(gdal = c("COMPRESS=LZW"))
+      )
+    })
+
+    # Limpar arquivo temporário de predição (se foi gerado)
+    if (file.exists(pred_tmp)) file.remove(pred_tmp)
+
     # 12. Salvar avaliação
     cat("\n🔟 Salvando resultados...\n")
     
