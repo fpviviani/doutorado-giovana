@@ -17,7 +17,7 @@ n_replicacoes <- 6
 test_percent <- 30
 
 # BACKGROUND: Proporção 1:1 (Rausell-Moreno 2025)
-background_min <- 200
+background_min <- 5000
 background_max <- 10000
 
 # MÉTODOS
