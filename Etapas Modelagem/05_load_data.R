@@ -3,7 +3,7 @@
 # -----------------------------------------------------------------------------
 
 cat("📦 Carregando variáveis climáticas...\n")
-bioclimaticas <- rast(file.path(dir_variaveis, "wc2.1_country/BRA_wc2.1_30s_bio.tif"))
+bioclimaticas <- rast(file.path(dir_variaveis, "bio_brasil_30s.tif"))
 
 # Opcional: adicionar cobertura arbórea como preditor contínuo (% cobertura)
 # (assumimos que já está na mesma grade/resolução do bioclim, conforme informado)
