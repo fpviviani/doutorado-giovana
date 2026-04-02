@@ -41,31 +41,37 @@ cat("🔎 Bioclim res (orig): ", paste(res(bio_tpl), collapse = ", "), "\n", sep
 cat("🔎 Bioclim crs (orig): ", as.character(crs(bio_tpl)), "\n", sep = "")
 
 cat("🔎 Cobertura ext (orig): ", paste(as.vector(ext(cov)), collapse = ", "), "\n", sep = "")
-cat("🔎 Cobertura res (orig): ", paste(res(cov), collapse = ", "), "\n", sep = "")
-cat("🔎 Cobertura crs (orig): ", as.character(crs(cov)), "\n\n", sep = "")
+cat("🔎 Cobertura res (orig): ", paste(res(cov)), "\n", sep = "")
+cat("🔎 Cobertura crs (orig): ", as.character(crs(cov)), "\n", sep = "")
+
+# Use a trimmed cobertura as reference geometry (removes NA-only borders)
+cat("✂️ Trimming cobertura (remove bordas só-NA) ...\n")
+cov_ref <- trim(cov)
+cat("🔎 Cobertura ext (trim): ", paste(as.vector(ext(cov_ref)), collapse = ", "), "\n", sep = "")
+cat("🔎 Cobertura res (trim): ", paste(res(cov_ref)), "\n\n", sep = "")
 
 # 1) Ensure CRS matches (use cobertura as reference)
-if (!same.crs(cov, bio_tpl)) {
+if (!same.crs(cov_ref, bio_tpl)) {
   cat("🔁 Reprojecting bioclim to cobertura CRS...\n")
-  bio <- project(bio, crs(cov))
+  bio <- project(bio, crs(cov_ref))
   bio_tpl <- bio[[1]]
 }
 
-# 2) Crop bioclim to cobertura extent (smaller Brazil-only extent)
-cat("✂️ Cropping bioclim to cobertura extent...\n")
-bio_crop <- crop(bio, cov)
+# 2) Crop bioclim to cobertura TRIM extent (Brazil-only)
+cat("✂️ Cropping bioclim to cobertura extent (trim)...\n")
+bio_crop <- crop(bio, cov_ref)
 
 # 3) Resample bioclim to cobertura grid (forces res/extent/origin alignment)
 # (bioclim is continuous, so bilinear is OK)
-cat("🧩 Resampling bioclim to cobertura grid...\n")
-bio_aligned <- resample(bio_crop, cov, method = "bilinear")
+cat("🧩 Resampling bioclim to cobertura grid (trim)...\n")
+bio_aligned <- resample(bio_crop, cov_ref, method = "bilinear")
 
 # 4) Ensure cobertura is also aligned to itself grid (no-op) but keeps naming consistent
 # Sanity checks (geometry must match between bio_aligned[[1]] and cobertura)
-stopifnot(same.crs(bio_aligned, cov))
-stopifnot(all(res(bio_aligned) == res(cov)))
-stopifnot(all(ext(bio_aligned) == ext(cov)))
-stopifnot(all(origin(bio_aligned) == origin(cov)))
+stopifnot(same.crs(bio_aligned, cov_ref))
+stopifnot(all(res(bio_aligned) == res(cov_ref)))
+stopifnot(all(ext(bio_aligned) == ext(cov_ref)))
+stopifnot(all(origin(bio_aligned) == origin(cov_ref)))
 
 cat("✅ Aligned: bioclim cropped/resampled to cobertura geometry\n")
 
