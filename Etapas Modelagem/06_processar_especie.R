@@ -98,18 +98,29 @@ processar_especie <- function(especie_info, bioclimaticas, tentativa = 1) {
     sp_extract <- sp_extract[, -1, drop = FALSE]
 
     # Não punir NA: se a única NA for em cobertura_arborea, não descartamos a ocorrência.
-    # Estratégia: imputar NAs de cobertura_arborea com a mediana (dentro das ocorrências extraídas).
+    # Estratégia parametrizável (02_params.R):
+    # - na_cobertura_strategy = "zero" (default) ou "median"
     if ("cobertura_arborea" %in% names(sp_extract)) {
       na_cov <- sum(is.na(sp_extract$cobertura_arborea))
       if (na_cov > 0) {
-        med <- suppressWarnings(median(sp_extract$cobertura_arborea, na.rm = TRUE))
-        if (is.finite(med)) {
-          sp_extract$cobertura_arborea[is.na(sp_extract$cobertura_arborea)] <- med
-          cat("   ⚠️ cobertura_arborea tinha", na_cov, "NA(s); imputado com mediana=", round(med, 4), "\n")
+        strat <- "zero"
+        if (exists("na_cobertura_strategy") && !is.null(na_cobertura_strategy)) {
+          strat <- tolower(trimws(as.character(na_cobertura_strategy)))
+        }
+
+        if (strat == "median") {
+          med <- suppressWarnings(median(sp_extract$cobertura_arborea, na.rm = TRUE))
+          if (is.finite(med)) {
+            sp_extract$cobertura_arborea[is.na(sp_extract$cobertura_arborea)] <- med
+            cat("   ⚠️ cobertura_arborea tinha", na_cov, "NA(s); imputado com mediana=", round(med, 4), "\n")
+          } else {
+            cat("   ⚠️ cobertura_arborea está toda NA; removendo esta variável.\n")
+            sp_extract$cobertura_arborea <- NULL
+          }
         } else {
-          # Se tudo for NA, removemos a coluna para não derrubar o fluxo
-          cat("   ⚠️ cobertura_arborea está toda NA; removendo esta variável.\n")
-          sp_extract$cobertura_arborea <- NULL
+          # default: zero
+          sp_extract$cobertura_arborea[is.na(sp_extract$cobertura_arborea)] <- 0
+          cat("   ⚠️ cobertura_arborea tinha", na_cov, "NA(s); imputado com zero.\n")
         }
       }
     }

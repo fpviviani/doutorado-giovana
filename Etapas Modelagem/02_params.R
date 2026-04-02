@@ -25,6 +25,11 @@ background_max <- 10000
 # Se FALSE: usa somente o bioclim (comportamento antigo)
 usar_cobertura_arborea <- FALSE
 
+# NA da cobertura arbórea: estratégia para não punir ocorrências
+# - "zero": substitui NA por 0 (% cobertura)
+# - "median": substitui NA pela mediana observada na extração
+na_cobertura_strategy <- "zero"  # "zero" | "median"
+
 # MÉTODOS
 metodos_modelagem <- c('maxent', 'rf', 'mars')
 
