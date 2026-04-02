@@ -20,6 +20,11 @@ test_percent <- 30
 background_min <- 5000
 background_max <- 10000
 
+# PREDITORES
+# Se TRUE: usa bioclim + cobertura_arborea.tif (mesma grade/resolução)
+# Se FALSE: usa somente o bioclim (comportamento antigo)
+usar_cobertura_arborea <- FALSE
+
 # MÉTODOS
 metodos_modelagem <- c('maxent', 'rf', 'mars')
 

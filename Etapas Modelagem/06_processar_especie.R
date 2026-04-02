@@ -96,6 +96,25 @@ processar_especie <- function(especie_info, bioclimaticas, tentativa = 1) {
     
     sp_extract <- terra::extract(vars_buffer, sp_vect)
     sp_extract <- sp_extract[, -1, drop = FALSE]
+
+    # Não punir NA: se a única NA for em cobertura_arborea, não descartamos a ocorrência.
+    # Estratégia: imputar NAs de cobertura_arborea com a mediana (dentro das ocorrências extraídas).
+    if ("cobertura_arborea" %in% names(sp_extract)) {
+      na_cov <- sum(is.na(sp_extract$cobertura_arborea))
+      if (na_cov > 0) {
+        med <- suppressWarnings(median(sp_extract$cobertura_arborea, na.rm = TRUE))
+        if (is.finite(med)) {
+          sp_extract$cobertura_arborea[is.na(sp_extract$cobertura_arborea)] <- med
+          cat("   ⚠️ cobertura_arborea tinha", na_cov, "NA(s); imputado com mediana=", round(med, 4), "\n")
+        } else {
+          # Se tudo for NA, removemos a coluna para não derrubar o fluxo
+          cat("   ⚠️ cobertura_arborea está toda NA; removendo esta variável.\n")
+          sp_extract$cobertura_arborea <- NULL
+        }
+      }
+    }
+
+    # Agora sim: manter apenas linhas completas para as variáveis restantes
     sp_extract <- sp_extract[complete.cases(sp_extract), ]
     if (nrow(sp_extract) < 1) stop("Extração das variáveis retornou 0 linhas (ocorrências fora do raster/buffer?)")
     if (ncol(sp_extract) < 1) stop("Extração das variáveis retornou 0 colunas")
