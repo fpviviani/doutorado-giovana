@@ -92,11 +92,27 @@ processar_especie <- function(especie_info, bioclimaticas, tentativa = 1) {
 
     # 4. Recortar variáveis
     cat("\n3️⃣ Recortando variáveis...\n")
-    vars_buffer <- crop(bioclimaticas, buffer)
-    vars_buffer <- mask(vars_buffer, buffer)
+    vars_crop <- crop(bioclimaticas, buffer)
+    cat("   🔎 crop ok | camadas=", nlyr(vars_crop), "\n")
+
+    # Diagnóstico: quantos pixels NÃO-NA existem após crop? (por camada)
+    na_counts_crop <- tryCatch(terra::global(vars_crop, "notNA", na.rm = FALSE), error = function(e) NULL)
+    if (!is.null(na_counts_crop)) {
+      cat("   🔎 notNA por camada (crop):\n")
+      print(na_counts_crop)
+    }
+
+    vars_buffer <- mask(vars_crop, buffer)
     cat("   📊", nlyr(vars_buffer), "camadas\n")
     cat("   🔎 ext(vars_buffer):", paste(as.vector(terra::ext(vars_buffer)), collapse = ", "), "\n")
     if (nlyr(vars_buffer) < 1) stop("Recorte de variáveis resultou em 0 camadas")
+
+    # Diagnóstico: quantos pixels NÃO-NA existem após mask? (por camada)
+    na_counts_mask <- tryCatch(terra::global(vars_buffer, "notNA", na.rm = FALSE), error = function(e) NULL)
+    if (!is.null(na_counts_mask)) {
+      cat("   🔎 notNA por camada (mask):\n")
+      print(na_counts_mask)
+    }
 
     # 5. Extrair valores
     sp_vect <- vect(sp[, c("longitude", "latitude")], 
@@ -111,13 +127,23 @@ processar_especie <- function(especie_info, bioclimaticas, tentativa = 1) {
     inside_extent <- sum(lon >= e[1] & lon <= e[2] & lat >= e[3] & lat <= e[4], na.rm = TRUE)
     cat("   🔎 ocorrências dentro do extent do raster (check simples lon/lat):", inside_extent, "/", nrow(sp), "\n")
 
+    # Diagnóstico: extract no CROP (sem mask)
+    sp_extract_crop <- terra::extract(vars_crop, sp_vect)
+    sp_extract_crop <- sp_extract_crop[, -1, drop = FALSE]
+    cat("   🔎 extract (crop): nrow=", nrow(sp_extract_crop), " ncol=", ncol(sp_extract_crop), "\n")
+    if (nrow(sp_extract_crop) > 0) {
+      na_per_col_crop <- colSums(is.na(sp_extract_crop))
+      na_show_crop <- paste(names(na_per_col_crop), as.integer(na_per_col_crop), sep = "=", collapse = ", ")
+      cat("   🔎 NAs por coluna (crop):", na_show_crop, "\n")
+    }
+
     sp_extract <- terra::extract(vars_buffer, sp_vect)
     sp_extract <- sp_extract[, -1, drop = FALSE]
-    cat("   🔎 extract: nrow=", nrow(sp_extract), " ncol=", ncol(sp_extract), "\n")
+    cat("   🔎 extract (mask): nrow=", nrow(sp_extract), " ncol=", ncol(sp_extract), "\n")
     if (nrow(sp_extract) > 0) {
       na_per_col <- colSums(is.na(sp_extract))
       na_show <- paste(names(na_per_col), as.integer(na_per_col), sep = "=", collapse = ", ")
-      cat("   🔎 NAs por coluna:", na_show, "\n")
+      cat("   🔎 NAs por coluna (mask):", na_show, "\n")
     }
 
     # Não punir NA: se a única NA for em cobertura_arborea, não descartamos a ocorrência.
