@@ -180,3 +180,19 @@ O controle do safe mode fica em `Etapas Modelagem/02_params.R` na variável `saf
 
 - `safe_mode <- TRUE`: permite redução automática de `n_cores` após erros de memória (reduz pela metade: 8→4→2→1; 6→3→1).
 - `safe_mode <- FALSE`: desabilita a redução automática (segue com `n_cores` normal).
+
+
+## Pré-processar cobertura arbórea (alinhamento com bioclim)
+
+Para evitar repetir o alinhamento (CRS/res/ext/origin) a cada execução, rode uma vez:
+
+```bash
+Rscript scripts/prepare_cobertura_arborea.R
+# ou passando o caminho do projeto (opcional)
+Rscript scripts/prepare_cobertura_arborea.R "C:/Users/giova/modelagem-15km-codigo"
+```
+
+Isso gera:
+- `Input/Variaveis/cobertura_arborea_alinhada_bioclim.tif`
+
+Depois você pode configurar o pipeline para usar esse arquivo alinhado.
