@@ -81,21 +81,44 @@ processar_especie <- function(especie_info, bioclimaticas, tentativa = 1) {
     if (!file.exists(buffer_shp)) stop("Buffer não encontrado")
     
     buffer <- vect(buffer_shp)
-    
+
+    # --- DIAGNÓSTICO (buffer / CRS / arquivos) ---
+    cat("   🔎 buffer_shp:", buffer_shp, "\n")
+    cat("   🔎 buffer_shp exists:", file.exists(buffer_shp), "\n")
+    buffer_prj <- sub("\\.shp$", ".prj", buffer_shp, ignore.case = TRUE)
+    cat("   🔎 buffer_prj:", buffer_prj, " exists:", file.exists(buffer_prj), "\n")
+    cat("   🔎 crs(buffer):", as.character(terra::crs(buffer)), "\n")
+    cat("   🔎 crs(bioclimaticas):", as.character(terra::crs(bioclimaticas)), "\n")
+
     # 4. Recortar variáveis
     cat("\n3️⃣ Recortando variáveis...\n")
     vars_buffer <- crop(bioclimaticas, buffer)
     vars_buffer <- mask(vars_buffer, buffer)
     cat("   📊", nlyr(vars_buffer), "camadas\n")
+    cat("   🔎 ext(vars_buffer):", paste(as.vector(terra::ext(vars_buffer)), collapse = ", "), "\n")
     if (nlyr(vars_buffer) < 1) stop("Recorte de variáveis resultou em 0 camadas")
-    
+
     # 5. Extrair valores
     sp_vect <- vect(sp[, c("longitude", "latitude")], 
                     geom = c("longitude", "latitude"), 
                     crs = "epsg:4326")
-    
+    cat("   🔎 crs(sp_vect):", as.character(terra::crs(sp_vect)), "\n")
+
+    # quick check: how many points fall inside raster extent (in the CURRENT CRS of sp_vect)
+    lon <- sp$longitude
+    lat <- sp$latitude
+    e <- terra::ext(vars_buffer)
+    inside_extent <- sum(lon >= e[1] & lon <= e[2] & lat >= e[3] & lat <= e[4], na.rm = TRUE)
+    cat("   🔎 ocorrências dentro do extent do raster (check simples lon/lat):", inside_extent, "/", nrow(sp), "\n")
+
     sp_extract <- terra::extract(vars_buffer, sp_vect)
     sp_extract <- sp_extract[, -1, drop = FALSE]
+    cat("   🔎 extract: nrow=", nrow(sp_extract), " ncol=", ncol(sp_extract), "\n")
+    if (nrow(sp_extract) > 0) {
+      na_per_col <- colSums(is.na(sp_extract))
+      na_show <- paste(names(na_per_col), as.integer(na_per_col), sep = "=", collapse = ", ")
+      cat("   🔎 NAs por coluna:", na_show, "\n")
+    }
 
     # Não punir NA: se a única NA for em cobertura_arborea, não descartamos a ocorrência.
     # Estratégia parametrizável (02_params.R):
