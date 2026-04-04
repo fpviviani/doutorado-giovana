@@ -23,7 +23,7 @@ background_max <- 10000
 # PREDITORES
 # Se TRUE: usa bioclim + cobertura_arborea.tif (mesma grade/resolução)
 # Se FALSE: usa somente o bioclim (comportamento antigo)
-usar_cobertura_arborea <- TRUE
+usar_cobertura_arborea <- FALSE
 
 # NA da cobertura arbórea: estratégia para não punir ocorrências
 # - "zero": substitui NA por 0 (% cobertura)
@@ -40,7 +40,7 @@ modo_execucao <- "single"  # "loop" | "single" | "list"
 
 # Usado somente se modo_execucao == "single".
 # Exemplo: "Crypturellus_duidae" (deve bater com o nome do arquivo sem sufixos)
-especie_unica <- "Crypturellus_duidae"
+especie_unica <- "Crypturellus_bartletti"
 
 # Usado somente se modo_execucao == "list".
 # Exemplo: c("Crypturellus_duidae", "Capito_auratus")
