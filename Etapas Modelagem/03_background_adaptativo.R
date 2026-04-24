@@ -4,7 +4,7 @@
 # -----------------------------------------------------------------------------
 
 calcular_background <- function(n_ocorrencias) {
-  if (n_ocorrencias < 50) {
+  if (n_ocorrencias < 100) {
     bg <- 5000
     cat("   🟡 MENOS DE 50 OCORRÊNCIAS (", n_ocorrencias, 
         ") → Background: 5.000 (fixo)\n")

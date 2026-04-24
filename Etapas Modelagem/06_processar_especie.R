@@ -54,9 +54,9 @@ processar_especie <- function(especie_info, bioclimaticas, tentativa = 1) {
     cat("\n1️⃣ Carregando ocorrências...\n")
     sp <- read.csv(especie_info$arquivo)
     
-    if ("decimalLongitude" %in% names(sp)) {
-      names(sp)[names(sp) == "decimalLongitude"] <- "longitude"
-      names(sp)[names(sp) == "decimalLatitude"] <- "latitude"
+    if ("Longitude" %in% names(sp)) {
+      names(sp)[names(sp) == "Longitude"] <- "longitude"
+      names(sp)[names(sp) == "Latitude"] <- "latitude"
     }
     
     sp <- sp[complete.cases(sp[, c("longitude", "latitude")]), ]
@@ -71,14 +71,13 @@ processar_especie <- function(especie_info, bioclimaticas, tentativa = 1) {
     
     # 3. Carregar buffer
     cat("\n2️⃣ Carregando buffer...\n")
-    buffer_shp <- file.path(dir_buffers, paste0(especie, "_MCP_2graus.shp"))
-    if (!file.exists(buffer_shp)) {
-      buffer_shp <- file.path(dir_buffers, paste0(especie, ".shp"))
-    }
-    if (!file.exists(buffer_shp)) {
-      buffer_shp <- file.path(dir_buffers, paste0(especie, "buffer.shp"))
-    }
-    if (!file.exists(buffer_shp)) stop("Buffer não encontrado")
+    buffer_candidatos <- list.files(
+      dir_buffers,
+      pattern = paste0("^", especie, ".*\\.shp$"),
+      full.names = TRUE
+    )
+    if (length(buffer_candidatos) == 0) stop("Buffer não encontrado")
+    buffer_shp <- buffer_candidatos[1]
     
     buffer <- vect(buffer_shp)
 
@@ -152,7 +151,60 @@ processar_especie <- function(especie_info, bioclimaticas, tentativa = 1) {
     terra::writeRaster(vars_selecionadas, raster_temp, overwrite = TRUE, gdal = c("COMPRESS=NONE"))
     if (!file.exists(raster_temp)) stop("Falha ao criar raster temporário")
     vars_stack <- raster::stack(raster_temp)
-    
+
+    # 7b. Verificação visual de pontos (ativada por verificar_pontos em 02_params.R)
+    # Por padrão FALSE — não interrompe execuções em loop/batch.
+    if (exists("verificar_pontos") && isTRUE(verificar_pontos)) {
+      cat("\n🔍 Verificando distribuição de pontos no buffer...\n")
+
+      # Amostra de background para visualização (proxy — não afeta o sdmData)
+      bg_vis <- tryCatch(
+        terra::spatSample(vars_buffer[[1]], size = n_background,
+                          method = "random", na.rm = TRUE, as.points = TRUE),
+        error = function(e) NULL
+      )
+
+      sp_vect_vis <- vect(sp[, c("longitude", "latitude")],
+                          geom = c("longitude", "latitude"),
+                          crs = "epsg:4326")
+
+      n_bg_vis <- if (!is.null(bg_vis)) length(bg_vis) else "?"
+      plot(buffer,
+           main = paste("Verificação:", gsub("_", " ", especie)),
+           sub  = paste0("Presença: ", nrow(sp), " pts  |  Background: ", n_bg_vis, " pts"),
+           col   = "#d9f0d3",
+           border = "darkgreen",
+           lwd   = 2)
+      if (!is.null(bg_vis)) {
+        points(bg_vis,
+               col = adjustcolor("steelblue", alpha.f = 0.5),
+               pch = 16, cex = 0.4)
+      }
+      points(sp_vect_vis, col = "red", pch = 16, cex = 1.2)
+      legend("bottomleft",
+             legend = c("Presença", "Background"),
+             col    = c("red", adjustcolor("steelblue", alpha.f = 0.7)),
+             pch    = 16,
+             bty    = "n",
+             cex    = 0.9)
+
+      cat("   📊 Presença:   ", nrow(sp), "pontos\n")
+      cat("   📊 Background: ", n_background, "pontos (n_background definido em params)\n")
+
+      resposta <- readline(
+        prompt = "   ➡️  Distribuição OK? Continuar com esta espécie? [s/n]: "
+      )
+      resposta <- tolower(trimws(resposta))
+
+      if (resposta != "s") {
+        cat("   ⏭️  Espécie pulada pelo usuário na etapa de verificação.\n")
+        resultado$status <- "pulado"
+        resultado$erro   <- "Pulado pelo usuário na verificação de pontos"
+        return(resultado)
+      }
+      cat("   ✅ Confirmado. Continuando...\n")
+    }
+
     # 8. Preparar dados
     cat("\n6️⃣ Preparando dados com", n_background, "backgrounds...\n")
     
@@ -230,7 +282,7 @@ processar_especie <- function(especie_info, bioclimaticas, tentativa = 1) {
         filename = arquivo_mapa,
         overwrite = TRUE,
         pFilename = pred_tmp,
-        setting = list(method = "weighted", stat = "TSS"),
+        setting = list(method = "weighted", stat = "AUC"),
         wopt = list(gdal = c("COMPRESS=LZW"))
       )
     }, error = function(e) {
@@ -274,6 +326,7 @@ processar_especie <- function(especie_info, bioclimaticas, tentativa = 1) {
     
   }, error = function(e) {
     cat("\n❌ ERRO:", e$message, "\n")
+    cat("\n", deparse(e$call), "\n")
     resultado$erro <- as.character(e$message)
   })
   

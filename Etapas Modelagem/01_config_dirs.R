@@ -9,9 +9,9 @@ dir_input <- file.path(dir_base, "Input")
 dir_output <- file.path(dir_base, "Output")
 
 # INPUTS
-dir_ocorrencias <- file.path(dir_input, "Ocorrencias_10km")
-dir_buffers <- file.path(dir_input, "Buffers_10km")
-dir_variaveis <- file.path(dir_input, "Variaveis")
+dir_ocorrencias <- file.path(dir_input, "new_occ_10km")
+dir_buffers <- file.path(dir_input, "new_buffers")
+dir_variaveis <- file.path(dir_input, "Clima")
 
 # OUTPUTS
 dir_modelagem <- file.path(dir_output, "Modelagem_10km")

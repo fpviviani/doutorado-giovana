@@ -117,6 +117,10 @@ if (nrow(especies_pendentes) == 0) {
           sucesso <- TRUE
           resultados_consolidados <- rbind(resultados_consolidados, resultado)
           break
+        } else if (resultado$status == "pulado") {
+          # Usuário recusou na verificação visual — não retentar, não registrar como erro
+          cat("\n⏭️ Espécie pulada na verificação de pontos. Avançando...\n")
+          break
         } else if (tentativa < max_tentativas) {
           cat("\n⏳ Aguardando 2 minutos...\n")
           Sys.sleep(120)
@@ -138,7 +142,7 @@ if (nrow(especies_pendentes) == 0) {
       }
 
       # Registrar último erro por espécie (se falhou)
-      if (!is.null(resultado) && resultado$status != "sucesso") {
+      if (!is.null(resultado) && resultado$status != "sucesso" && resultado$status != "pulado") {
         nova_linha <- data.frame(
           especie = especie_info$especie,
           tentativa = tentativa_final,

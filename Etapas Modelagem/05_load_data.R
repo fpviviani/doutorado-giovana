@@ -22,7 +22,7 @@ arquivos_ocorrencias <- list.files(dir_ocorrencias, pattern = "\\.csv$", full.na
 nomes_arquivos <- basename(arquivos_ocorrencias)
 
 extrair_nome_especie <- function(nome_arquivo) {
-  nome <- gsub("_rarefeito\\.csv$|_bruto\\.csv$|\\.csv$", "", nome_arquivo)
+  nome <- gsub("_rarefeito\\.csv$|_bruto\\.csv$|_thin_\\d+km\\.csv$|\\.csv$", "", nome_arquivo)
   return(nome)
 }
 
