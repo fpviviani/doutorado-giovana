@@ -1,4 +1,4 @@
-# Mestrado Gigi — Modelagem (estrutura do projeto)
+# Doutorado Gigi — Modelagem (estrutura do projeto)
 
 Este diretório contém o script de modelagem R **compartimentado em etapas** para facilitar manutenção.
 
