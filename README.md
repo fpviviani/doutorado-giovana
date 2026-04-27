@@ -1,4 +1,4 @@
-# Doutorado Gigi — Modelagem (estrutura do projeto)
+# Doutorado Giovana — Modelagem (estrutura do projeto)
 
 Este diretório contém o script de modelagem R **compartimentado em etapas** para facilitar manutenção.
 
@@ -190,7 +190,7 @@ O controle do safe mode fica em `Etapas Modelagem/02_params.R` na variável `saf
 
 ## Scripts auxiliares (ocorrências / mapas)
 
-Os scripts abaixo foram adicionados/atualizados pela Gi para download, limpeza e rarefação de ocorrências (GBIF):
+Os scripts abaixo foram adicionados/atualizados pela Giovana para download, limpeza e rarefação de ocorrências (GBIF):
 
 - `scripts/ocorrencias_limpas_ind.R` → processa **uma espécie** (download + limpeza + thinning)
 - `scripts/ocorrencias_limpas_loop.R` → processa uma **lista de espécies** (`Input/lista_completa_spp.csv`)
