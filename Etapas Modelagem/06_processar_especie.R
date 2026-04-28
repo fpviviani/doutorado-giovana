@@ -101,20 +101,52 @@ processar_especie <- function(especie_info, bioclimaticas, tentativa = 1) {
     if (nrow(sp_extract) < 1) stop("Extração das variáveis retornou 0 linhas (ocorrências fora do raster/buffer?)")
     if (ncol(sp_extract) < 1) stop("Extração das variáveis retornou 0 colunas")
     
-    # 6. VIF
-    cat("\n4️⃣ Analisando VIF...\n")
-    vif_resultado <- tryCatch({
-      vifstep(sp_extract, th = limiar_vif)
-    }, error = function(e) NULL)
-    
-    if (!is.null(vif_resultado)) {
-      vars_selecionadas <- exclude(vars_buffer, vif_resultado)
+    # 6. Seleção de variáveis por VIF (manter as 5 com menor VIF)
+    cat("\n4️⃣ Selecionando variáveis por VIF (top 5 menor VIF)...\n")
+
+    # Calcula VIF por variável via regressão linear (VIF = 1/(1-R²)).
+    # Evita dependência de funções específicas de pacotes.
+    calcular_vif_df <- function(df) {
+      df <- as.data.frame(df)
+      df <- df[, vapply(df, is.numeric, logical(1)), drop = FALSE]
+      df <- df[, vapply(df, function(x) length(unique(x[!is.na(x)])) > 1, logical(1)), drop = FALSE]
+      if (ncol(df) < 2) {
+        return(data.frame(variavel = names(df), vif = rep(NA_real_, ncol(df)), stringsAsFactors = FALSE))
+      }
+
+      vifs <- sapply(names(df), function(v) {
+        y <- df[[v]]
+        X <- df[names(df) != v]
+        ok <- complete.cases(cbind(y, X))
+        y <- y[ok]
+        X <- X[ok]
+        if (length(y) < 10 || ncol(X) < 1) return(NA_real_)
+
+        fit <- tryCatch(lm(y ~ ., data = X), error = function(e) NULL)
+        if (is.null(fit)) return(NA_real_)
+        r2 <- tryCatch(summary(fit)$r.squared, error = function(e) NA_real_)
+        if (!is.finite(r2) || r2 >= 0.999999) return(Inf)
+        1 / (1 - r2)
+      })
+
+      data.frame(variavel = names(vifs), vif = as.numeric(vifs), stringsAsFactors = FALSE)
+    }
+
+    vif_df <- tryCatch(calcular_vif_df(sp_extract), error = function(e) NULL)
+
+    if (!is.null(vif_df) && nrow(vif_df) > 0) {
+      vif_df <- vif_df[order(vif_df$vif, vif_df$variavel, na.last = TRUE), , drop = FALSE]
+      n_keep <- min(5, nrow(vif_df))
+      vars_keep <- vif_df$variavel[seq_len(n_keep)]
+
+      vars_selecionadas <- vars_buffer[[vars_keep]]
       resultado$n_variaveis_selecionadas <- nlyr(vars_selecionadas)
-      cat("   ✅", resultado$n_variaveis_selecionadas, "variáveis selecionadas\n")
+
+      cat("   ✅ Mantidas", resultado$n_variaveis_selecionadas, "variáveis (menor VIF): ", paste(vars_keep, collapse = ", "), "\n", sep = "")
     } else {
       vars_selecionadas <- vars_buffer
       resultado$n_variaveis_selecionadas <- nlyr(vars_selecionadas)
-      cat("   ⚠️ Usando todas as", resultado$n_variaveis_selecionadas, "variáveis\n")
+      cat("   ⚠️ Não foi possível calcular VIF; usando todas as", resultado$n_variaveis_selecionadas, "variáveis\n")
     }
     
     # 7. Converter para stack
@@ -254,7 +286,7 @@ processar_especie <- function(especie_info, bioclimaticas, tentativa = 1) {
         filename = arquivo_mapa,
         overwrite = TRUE,
         pFilename = pred_tmp,
-        setting = list(method = "weighted", stat = "AUC"),
+        setting = list(method = "weighted", stat = "TSS"),
         wopt = list(gdal = c("COMPRESS=LZW"))
       )
     }, error = function(e) {
