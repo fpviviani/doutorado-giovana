@@ -17,8 +17,7 @@ n_replicacoes <- 10
 test_percent <- 30
 
 # BACKGROUND:
-background_min <- 5000
-background_max <- 10000
+# Número de pontos de background é fixo em 10.000 (ver 03_background_adaptativo.R)
 
 # PREDITORES
 # O pipeline utiliza apenas o raster bioclimático (bio_brasil_30s.tif).

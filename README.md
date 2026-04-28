@@ -74,7 +74,7 @@ Parâmetros gerais da modelagem.
 - Tamanho de lote, pausas e número de tentativas
 - Número de cores (`n_cores`) e `safe_mode` (reduz automaticamente `n_cores` após erros de memória)
 - Número de replicações e percentual de teste
-- Limites de background (`background_min/max`)
+- Número de pontos de background: fixo em 10.000
 - Métodos de modelagem (atual: `maxent`, `rf`, `mars`)
 - **Modo de execução**:
   - `modo_execucao = "loop"` (todas as espécies)
@@ -84,10 +84,10 @@ Parâmetros gerais da modelagem.
 - Preditores opcionais:
 
 #### `Etapas Modelagem/03_background_adaptativo.R`
-Função de background adaptativo.
+Função de background (fixo).
 
 - Define `calcular_background(n_ocorrencias)`
-- Calcula o número de pontos de background com base na quantidade de ocorrências (proporção 1:1) respeitando `background_min` e `background_max`
+- Retorna **10.000** pontos de background para todas as espécies
 
 #### `Etapas Modelagem/04_cleanup.R`
 Limpeza inicial antes de começar o processamento.
@@ -111,7 +111,7 @@ Função principal de processamento por espécie.
 - Define `processar_especie(especie_info, bioclimaticas, tentativa = 1)`
 - Fluxo típico:
   - lê ocorrências e valida quantidade
-  - calcula background adaptativo
+  - calcula background fixo (10.000)
   - carrega buffer da espécie
   - recorta e mascara preditores no buffer
   - extrai valores nas ocorrências (`terra::extract`)

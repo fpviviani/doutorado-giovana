@@ -8,7 +8,7 @@ if (nrow(especies_pendentes) == 0) {
   
   cat("\n", paste(rep("🔥", 40), collapse = ""), "\n")
   cat("INICIANDO MODELAGEM\n")
-  cat("Background adaptativo: proporção 1:1\n")
+  cat("Background fixo: 10.000 pontos\n")
   cat("Espécies pendentes:", nrow(especies_pendentes), "\n")
   cat(paste(rep("🔥", 40), collapse = ""), "\n\n")
   n_cores_inicial <- n_cores
@@ -16,12 +16,12 @@ if (nrow(especies_pendentes) == 0) {
   parametros_execucao <- data.frame(
     parametro = c(
       'lote_tamanho','pausa_minutos','max_tentativas','n_cores_inicial','n_cores','safe_mode','limiar_vif','n_replicacoes','test_percent',
-      'background_min','background_max','metodos_modelagem',
+      'metodos_modelagem',
       'modo_execucao','especie_unica','especies_lista','especie_partida'
     ),
     valor = c(
       lote_tamanho, pausa_minutos, max_tentativas, n_cores_inicial, n_cores, safe_mode, limiar_vif, n_replicacoes, test_percent,
-      background_min, background_max, paste(metodos_modelagem, collapse = ','),
+      paste(metodos_modelagem, collapse = ','),
       modo_execucao,
       ifelse(is.null(especie_unica), '', as.character(especie_unica)),
       ifelse(is.null(especies_lista), '', paste(as.character(especies_lista), collapse = ',')),
