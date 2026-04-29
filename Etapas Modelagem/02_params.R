@@ -13,19 +13,7 @@ n_cores <- 4
 # (3 e depois 1) após erros de memória. Aqui, o valor de n_cores não é alterado manualmente.
 safe_mode <- TRUE
 limiar_vif <- 10
-n_vars_max <- 5  # máximo de variáveis após o filtro (seleção por menor correlação média)
-
-# TESTE: subconjunto fixo de variáveis bioclimáticas (Marini et al. 2009; seleção descrita no texto enviado)
-# Quando TRUE, o pipeline usa apenas estas 5 variáveis e ignora (temporariamente) a seleção por VIF/correlação por espécie.
-# Subset escolhido: bio4, bio5, bio7, bio12, bio15.
-use_fixed_bioclim_subset <- FALSE
-fixed_bioclim_vars <- c(
-  "wc2.1_30s_bio_4",
-  "wc2.1_30s_bio_5",
-  "wc2.1_30s_bio_7",
-  "wc2.1_30s_bio_12",
-  "wc2.1_30s_bio_15"
-)
+n_vars_max <- 6  # máximo de variáveis após o filtro (seleção por menor correlação média)
 n_replicacoes <- 10
 test_percent <- 30
 
@@ -58,4 +46,4 @@ especie_partida <- ""
 # VERIFICAÇÃO VISUAL DE PONTOS
 # Se TRUE: antes de rodar sdmData, plota presença + background (amostra) no buffer
 # e pede confirmação interativa. Use FALSE em execuções em loop (batch).
-verificar_pontos <- TRUE
+verificar_pontos <- FALSE
