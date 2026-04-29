@@ -106,91 +106,16 @@ processar_especie <- function(especie_info, bioclimaticas, tentativa = 1) {
     cat("   🔧 Filtro por VIF + corte por correlação (por espécie)\n")
     cat("   🔧 limiar_vif=", limiar_vif, " | n_vars_max=", ifelse(exists("n_vars_max"), n_vars_max, 6), "\n", sep = "")
 
-    # Calcula VIF por variável via regressão linear (VIF = 1/(1-R²)).
-    # Evita dependência de funções específicas de pacotes.
-    calcular_vif_df <- function(df) {
-      df <- as.data.frame(df)
-      df <- df[, vapply(df, is.numeric, logical(1)), drop = FALSE]
-      df <- df[, vapply(df, function(x) length(unique(x[!is.na(x)])) > 1, logical(1)), drop = FALSE]
-      df <- df[complete.cases(df), , drop = FALSE]
-
-      if (ncol(df) < 2 || nrow(df) < 10) {
-        return(data.frame(
-          variavel = names(df),
-          vif = rep(NA_real_, ncol(df)),
-          stringsAsFactors = FALSE
-        ))
-      }
-
-      vifs <- sapply(names(df), function(v) {
-        tryCatch({
-          y <- df[[v]]
-          X <- df[names(df) != v, drop = FALSE]
-          if (ncol(X) < 1) return(NA_real_)
-
-          # Ajuste robusto: colocar y dentro do data.frame do lm.
-          dfit <- cbind(y = y, X)
-          fit <- lm(y ~ ., data = dfit)
-          r2 <- summary(fit)$r.squared
-
-          if (!is.finite(r2) || r2 >= 0.999999) return(Inf)
-          1 / (1 - r2)
-        }, error = function(e) {
-          NA_real_
-        })
-      })
-
-      data.frame(variavel = names(vifs), vif = as.numeric(vifs), stringsAsFactors = FALSE)
+    # 6a) Filtro por VIF via usdm::vifstep (obrigatório)
+    if (!requireNamespace("usdm", quietly = TRUE)) {
+      stop("Pacote 'usdm' não está instalado. Instale o pacote usdm para rodar o filtro de VIF (vifstep).")
     }
 
-    # 6a) Filtro por VIF (preferencialmente via usdm::vifstep; fallback para VIF interno)
-    vars_selecionadas <- NULL
+    cat("   📦 usdm: aplicando vifstep(th=", limiar_vif, ")...\n", sep = "")
+    vif_res <- usdm::vifstep(sp_extract, th = limiar_vif)
+    vars_selecionadas <- usdm::exclude(vars_buffer, vif_res)
 
-    if (requireNamespace("usdm", quietly = TRUE)) {
-      cat("   📦 usdm disponível: aplicando vifstep(th=", limiar_vif, ")...\n", sep = "")
-      vars_selecionadas <- tryCatch({
-        vif_res <- usdm::vifstep(sp_extract, th = limiar_vif)
-        usdm::exclude(vars_buffer, vif_res)
-      }, error = function(e) {
-        cat("   ⚠️ usdm::vifstep falhou: ", e$message, "\n", sep = "")
-        NULL
-      })
-    } else {
-      cat("   ℹ️ usdm não disponível: usando VIF interno (fallback)\n")
-    }
-
-    if (is.null(vars_selecionadas)) {
-      vars_candidatas <- names(vars_buffer)
-      max_iter <- 200
-
-      for (iter in seq_len(max_iter)) {
-        if (length(vars_candidatas) <= 2) break
-
-        df_iter <- sp_extract[, vars_candidatas, drop = FALSE]
-        vif_df <- tryCatch(calcular_vif_df(df_iter), error = function(e) NULL)
-        if (is.null(vif_df) || nrow(vif_df) == 0) break
-        if (all(is.na(vif_df$vif))) break
-
-        vmax <- suppressWarnings(max(vif_df$vif, na.rm = TRUE))
-        if (!is.finite(vmax)) {
-          # Se houver Inf, remove a pior e continua
-        } else if (vmax <= limiar_vif) {
-          break
-        }
-
-        ord_desc <- order(vif_df$vif, decreasing = TRUE, na.last = TRUE)
-        worst <- as.character(vif_df$variavel[ord_desc[1]])
-        vars_candidatas <- setdiff(vars_candidatas, worst)
-      }
-
-      if (length(vars_candidatas) >= 1) {
-        vars_selecionadas <- vars_buffer[[vars_candidatas]]
-      } else {
-        vars_selecionadas <- vars_buffer
-      }
-    }
-
-    cat("   ✅", nlyr(vars_selecionadas), "variáveis após filtro de VIF\n")
+    cat("   ✅", nlyr(vars_selecionadas), "variáveis após filtro de VIF (usdm)\n")
 
     # 6b) Corte final: manter no máximo n_vars_max variáveis menos correlacionadas (nas ocorrências)
     n_vars_max_local <- 5
