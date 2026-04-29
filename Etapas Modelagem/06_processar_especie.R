@@ -116,6 +116,7 @@ processar_especie <- function(especie_info, bioclimaticas, tentativa = 1) {
     vars_selecionadas <- usdm::exclude(vars_buffer, vif_res)
 
     cat("   ✅", nlyr(vars_selecionadas), "variáveis após filtro de VIF (usdm)\n")
+    cat("   ✅ Variáveis após VIF: ", paste(names(vars_selecionadas), collapse = ", "), "\n", sep = "")
 
     # 6b) Corte final: manter no máximo n_vars_max variáveis menos correlacionadas (nas ocorrências)
     n_vars_max_local <- 5
@@ -145,6 +146,7 @@ processar_especie <- function(especie_info, bioclimaticas, tentativa = 1) {
 
       vars_selecionadas <- vars_selecionadas[[vars_escolhidas]]
       cat("   ✅ Variáveis finais (menor correlação média): ", paste(vars_escolhidas, collapse = ", "), "\n", sep = "")
+      cat("   ✅ (Log) Variáveis finais após correlação: ", paste(names(vars_selecionadas), collapse = ", "), "\n", sep = "")
     }
 
     resultado$n_variaveis_selecionadas <- nlyr(vars_selecionadas)
