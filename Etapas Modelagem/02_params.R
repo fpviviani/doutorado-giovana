@@ -12,7 +12,7 @@ n_cores <- 4
 # IMPORTANTE: quando ativo, permite que o script reduza n_cores automaticamente
 # (3 e depois 1) após erros de memória. Aqui, o valor de n_cores não é alterado manualmente.
 safe_mode <- TRUE
-limiar_vif <- 10
+limiar_vif <- 5
 n_vars_max <- 4  # máximo de variáveis após o filtro (seleção por menor correlação média)
 n_replicacoes <- 10
 test_percent <- 30

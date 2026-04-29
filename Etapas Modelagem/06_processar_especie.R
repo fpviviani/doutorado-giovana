@@ -143,35 +143,51 @@ processar_especie <- function(especie_info, bioclimaticas, tentativa = 1) {
       data.frame(variavel = names(vifs), vif = as.numeric(vifs), stringsAsFactors = FALSE)
     }
 
-    # 6a) Filtro por VIF (remove colinearidade excessiva até VIF <= limiar_vif)
-    vars_candidatas <- names(vars_buffer)
-    max_iter <- 200
+    # 6a) Filtro por VIF (preferencialmente via usdm::vifstep; fallback para VIF interno)
+    vars_selecionadas <- NULL
 
-    for (iter in seq_len(max_iter)) {
-      if (length(vars_candidatas) <= 2) break
-
-      df_iter <- sp_extract[, vars_candidatas, drop = FALSE]
-      vif_df <- tryCatch(calcular_vif_df(df_iter), error = function(e) NULL)
-      if (is.null(vif_df) || nrow(vif_df) == 0) break
-      if (all(is.na(vif_df$vif))) break
-
-      vmax <- suppressWarnings(max(vif_df$vif, na.rm = TRUE))
-      if (!is.finite(vmax)) {
-        # Se houver Inf, remove a pior e continua
-      } else if (vmax <= limiar_vif) {
-        break
-      }
-
-      ord_desc <- order(vif_df$vif, decreasing = TRUE, na.last = TRUE)
-      worst <- as.character(vif_df$variavel[ord_desc[1]])
-      vars_candidatas <- setdiff(vars_candidatas, worst)
+    if (requireNamespace("usdm", quietly = TRUE)) {
+      cat("   📦 usdm disponível: aplicando vifstep(th=", limiar_vif, ")...\n", sep = "")
+      vars_selecionadas <- tryCatch({
+        vif_res <- usdm::vifstep(sp_extract, th = limiar_vif)
+        usdm::exclude(vars_buffer, vif_res)
+      }, error = function(e) {
+        cat("   ⚠️ usdm::vifstep falhou: ", e$message, "\n", sep = "")
+        NULL
+      })
+    } else {
+      cat("   ℹ️ usdm não disponível: usando VIF interno (fallback)\n")
     }
 
-    # Aplicar filtro VIF (se sobrou algo)
-    if (length(vars_candidatas) >= 1) {
-      vars_selecionadas <- vars_buffer[[vars_candidatas]]
-    } else {
-      vars_selecionadas <- vars_buffer
+    if (is.null(vars_selecionadas)) {
+      vars_candidatas <- names(vars_buffer)
+      max_iter <- 200
+
+      for (iter in seq_len(max_iter)) {
+        if (length(vars_candidatas) <= 2) break
+
+        df_iter <- sp_extract[, vars_candidatas, drop = FALSE]
+        vif_df <- tryCatch(calcular_vif_df(df_iter), error = function(e) NULL)
+        if (is.null(vif_df) || nrow(vif_df) == 0) break
+        if (all(is.na(vif_df$vif))) break
+
+        vmax <- suppressWarnings(max(vif_df$vif, na.rm = TRUE))
+        if (!is.finite(vmax)) {
+          # Se houver Inf, remove a pior e continua
+        } else if (vmax <= limiar_vif) {
+          break
+        }
+
+        ord_desc <- order(vif_df$vif, decreasing = TRUE, na.last = TRUE)
+        worst <- as.character(vif_df$variavel[ord_desc[1]])
+        vars_candidatas <- setdiff(vars_candidatas, worst)
+      }
+
+      if (length(vars_candidatas) >= 1) {
+        vars_selecionadas <- vars_buffer[[vars_candidatas]]
+      } else {
+        vars_selecionadas <- vars_buffer
+      }
     }
 
     cat("   ✅", nlyr(vars_selecionadas), "variáveis após filtro de VIF\n")
